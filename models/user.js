@@ -17,7 +17,7 @@ class User{
     return db.collection('users')
     .insertOne(this)
     .then(result => {
-      console.log('Result is : ',result);
+      //console.log('Result is : ',result);
     })
     .catch(err => {
       console.log(err);
@@ -28,6 +28,7 @@ class User{
       const cartProductIndex = this.cart.items.findIndex(cp => {
         return cp.productId.toString() === product._id.toString();
       })
+     
       let newQuantity = 1;
       const updatedCartItems = [...this.cart.items];
 
@@ -41,7 +42,10 @@ class User{
         });
       }
 
-       const updatedCart = {items: updatedCartItems};
+      const updatedCart = {items: updatedCartItems};
+
+      // At first time we add item using below statement
+      // const updatedCart = {items: [{productId: new ObjectId(product._id), quantity:1}]};
         const db = getDb();
        return db
         .collection('users')
@@ -51,12 +55,46 @@ class User{
         );
   }
 
+  getCart(){
+    const db = getDb();
+    const productIds = this.cart.items.map(i => {
+      return i.productId;
+    });
+    return db
+    .collection('products')
+    .find({_id: {$in: productIds}})
+    .toArray()
+    .then(products => {
+      return products.map(p => {
+        return {
+          ...p,
+          quantity: this.cart.items.find( i => {
+            return i.productId.toString() === p._id.toString()
+          }).quantity
+        }
+      })
+    })
+  }
+
+  deleteCartProduct(prodId){
+    const updatedCart = this.cart.items.filter(item => {
+      return item.productId.toString() !== prodId.toString();
+    })
+    const db = getDb();
+    return db
+     .collection('users')
+     .updateOne(
+       {_id: new ObjectId(this._id) },
+       { $set : {cart: {items: updatedCart}} }
+     );
+  }
+
   static findById(userId){
    const  db = getDb();
     return db.collection('users')
     .findOne({_id : new ObjectId(userId)})
     .then(user => {
-      console.log('User is : ',user);
+      //console.log('User is : ',user);
       return user;
     })
     .catch(err => {
